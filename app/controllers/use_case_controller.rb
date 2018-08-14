@@ -5,13 +5,13 @@ class UseCaseController < ApplicationController
     user = User.new
     hmac_secret = request.headers['HTTP_AUTHORIZATION']
     if hmac_secret.blank?
-      render :json => "Unauthorized", :status => 401
+      render :json => messageFormatter("Erro de autenticação", 401)
     else
       if hmac_secret != "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJjb21wYW55X2lkIjoxOH0.yRP59sRufpm9ro6RGZ8nuZcfRVMKqkCvneBz6KZB4mU"
-        render :json => "Forbiden_Autorization", :status => 403
+        render messageFormatter("Erro de autenticação", 403)
       else
         if request.headers['HTTP_PASSWORD'].blank? || request.headers['HTTP_EMAIL'].blank?  || request.headers['HTTP_NOME'].blank?
-          render :json => "Not Found", :status => 404
+          render messageFormatter("Um ou mais parâmetros não foram informados", 404)
         else
           email = request.headers['HTTP_EMAIL']
           nome = request.headers['HTTP_NOME']
@@ -20,9 +20,13 @@ class UseCaseController < ApplicationController
             password: request.headers['HTTP_PASSWORD']
           }
           password_coded = crypteParams(password, hmac_secret)
-          other_users_with_email = User.where(email: email).count
-          if other_users_with_email.size > 0
-            render :json => "Email_já_cadastrado", :status => 404
+          other_users_with_email = User.where(email: email)
+
+          if !other_users_with_email.blank?
+            other_users_with_email.each do |x|
+              puts x.nome
+            end
+            render messageFormatter("E-mail já cadastrado, informe outro e-mail", 404)
           else
             user = User.create(nome: nome, email: email, password: password_coded, credit: 0, created_at: DateTime.current, updated_at: DateTime.current)
           
@@ -34,6 +38,8 @@ class UseCaseController < ApplicationController
 
             render :json => {
               message: "Usuário cadastrado com sucesso!",
+              nome: user.nome,
+              credito: user.credit,
               token: token_access
             }, :status => 200
           end
@@ -45,13 +51,13 @@ class UseCaseController < ApplicationController
   def loginUser
     hmac_secret = request.headers['HTTP_AUTHORIZATION']
     if hmac_secret.blank?
-      render :json => "Unauthorized", :status => 401
+      render :json => messageFormatter("Erro de autenticação", 401)
     else
       if hmac_secret != "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJjb21wYW55X2lkIjoxOH0.yRP59sRufpm9ro6RGZ8nuZcfRVMKqkCvneBz6KZB4mU"
-        render :json => "Forbiden_Autorization", :status => 403
+        render messageFormatter("Erro de autenticação", 403)
       else
         if request.headers['HTTP_PASSWORD'].blank? || request.headers['HTTP_EMAIL'].blank?
-          render :json => "Not Found", :status => 404
+          render messageFormatter("Um ou mais parâmetros não foram informados", 404)
         else
           email = request.headers['HTTP_EMAIL']
           request_password = request.headers['HTTP_PASSWORD']
@@ -69,18 +75,50 @@ class UseCaseController < ApplicationController
               token_access = JWT.encode access, hmac_secret
               render :json => {
                 message: "Login efetuado com sucesso!",
+                email: user.email,
+                nome: user.nome,
+                credito: user.credit,
                 token: token_access
               }, :status => 200
             else
-              render :json => "Invalid_User", :status => 404
+              render messageFormatter("Erro ao tenatr realizar Login, Senha e/ou Email inválidos", 403)
             end
             
           else
-            render :json => "User_Not_Found_with_the_Email", :status => 404
+            render messageFormatter("Erro ao tenatr realizar Login, Senha e/ou Email inválidos", 403)
           end
         end
       end
     end
+  end
+  def addCredits
+    hmac_secret = request.headers['HTTP_AUTHORIZATION']
+    access_token = request.headers['HTTP_TOKEN_ACCESS']
+    credit = request.headers['HTTP_CREDIT']
+    if hmac_secret.blank?
+      render messageFormatter("Erro de autenticação", 401)
+    else
+      if access_token.blank?
+        render messageFormatter("Erro de autenticação", 401)
+      else
+        if credit.blank?
+          render messageFormatter("Um ou mais valores não foram informados, por favor verifique os dados e tente novamente!", 404)
+        else
+          token_decoded = decryptParams(access_token, hmac_secret)
+          date_hour_token = token_decoded[0]['session'].to_datetime
+          if date_hour_token >= 15.minute.ago
+            user = User.find_by(email: token_decoded[0]['email'])
+            user.update(credit: credit)
+            render messageFormatter("Crédito atualizado com sucesso!", 401)
+          else
+            render messageFormatter("Sessão encerrada automaticamente após 15 minutis, Por favor refaça o Login", 500)
+          end
+        end
+      end
+    end
+  end
+
+  def editUser
   end
 
   private
@@ -90,5 +128,11 @@ class UseCaseController < ApplicationController
 
     def decryptParams(obj, hmac_secret)
       JWT.decode(obj, hmac_secret)
+    end
+
+    def messageFormatter(msg, status)
+      return :json => {
+        message: msg,
+      }, status: status
     end
 end
