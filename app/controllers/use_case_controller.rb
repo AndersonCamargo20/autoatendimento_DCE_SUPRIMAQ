@@ -26,7 +26,9 @@ class UseCaseController < ApplicationController
             render messageFormatter("E-mail já cadastrado, informe outro e-mail", 404)
           else
             user = User.create(nome: nome, email: email, password: password_coded, credit: 0, created_at: DateTime.current, updated_at: DateTime.current)
-          
+            if !request.headers['HTTP_ADMIN'].blank? && request.headers['HTTP_ADMIN'] == "true"
+              user.update(admin: true)
+            end
             access = {
               email: request.headers['HTTP_EMAIL'],
               session: DateTime.current
@@ -36,6 +38,7 @@ class UseCaseController < ApplicationController
             render :json => {
               message: "Usuário cadastrado com sucesso!",
               nome: user.nome,
+              admin: user.admin,
               credito: user.credit,
               token: token_access
             }, :status => 200
@@ -74,6 +77,7 @@ class UseCaseController < ApplicationController
                 message: "Login efetuado com sucesso!",
                 email: user.email,
                 nome: user.nome,
+                admin: user.admin,
                 credito: user.credit,
                 token: token_access
               }, :status => 200
@@ -112,6 +116,7 @@ class UseCaseController < ApplicationController
                 message: "Crédito adicionado com sucesso!",
                 email: user.email,
                 nome: user.nome,
+                admin: user.admin,
                 credito: user.credit,
                 token: access_token
               }, :status => 200
@@ -159,6 +164,7 @@ class UseCaseController < ApplicationController
             message: "Usuário editado com Sucesso!",
             email: user.email,
             nome: user.nome,
+            admin: user.admin,
             credito: user.credit,
             token: access_token
           }, :status => 200
