@@ -23,9 +23,6 @@ class UseCaseController < ApplicationController
           other_users_with_email = User.where(email: email)
 
           if !other_users_with_email.blank?
-            other_users_with_email.each do |x|
-              puts x.nome
-            end
             render messageFormatter("E-mail já cadastrado, informe outro e-mail", 404)
           else
             user = User.create(nome: nome, email: email, password: password_coded, credit: 0, created_at: DateTime.current, updated_at: DateTime.current)
@@ -34,7 +31,7 @@ class UseCaseController < ApplicationController
               email: request.headers['HTTP_EMAIL'],
               session: DateTime.current
             }
-            token_access = JWT.encode access, hmac_secret
+            token_access = JWT.encode access, hmac_secret, 'HS256'
 
             render :json => {
               message: "Usuário cadastrado com sucesso!",
@@ -72,7 +69,7 @@ class UseCaseController < ApplicationController
                 email: request.headers['HTTP_EMAIL'],
                 session: DateTime.current
               }
-              token_access = JWT.encode access, hmac_secret
+              token_access = JWT.encode access, hmac_secret, 'HS256'
               render :json => {
                 message: "Login efetuado com sucesso!",
                 email: user.email,
@@ -176,16 +173,20 @@ class UseCaseController < ApplicationController
 
   private
     def crypteParams(obj, hmac_secret)
-      JWT.encode obj, hmac_secret
+      JWT.encode obj, hmac_secret, 'HS256'
     end
 
     def decryptParams(obj, hmac_secret)
-      JWT.decode(obj, hmac_secret)
+      JWT.decode(obj, hmac_secret, true, algorithm: 'HS256')
     end
 
     def messageFormatter(msg, status)
       return :json => {
         message: msg,
       }, status: status
+    end
+
+    def logado?(date_hour)
+      date_hour >= 15.minute.ago
     end
 end
