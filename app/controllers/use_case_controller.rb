@@ -91,10 +91,11 @@ class UseCaseController < ApplicationController
       end
     end
   end
+
   def addCredits
     hmac_secret = request.headers['HTTP_AUTHORIZATION']
     access_token = request.headers['HTTP_TOKEN_ACCESS']
-    credit = request.headers['HTTP_CREDIT']
+    credit = request.headers['HTTP_CREDIT'].to_f
     if hmac_secret.blank?
       render messageFormatter("Erro de autenticação", 401)
     else
@@ -108,8 +109,18 @@ class UseCaseController < ApplicationController
           date_hour_token = token_decoded[0]['session'].to_datetime
           if date_hour_token >= 15.minute.ago
             user = User.find_by(email: token_decoded[0]['email'])
-            user.update(credit: credit)
-            render messageFormatter("Crédito atualizado com sucesso!", 401)
+            if !user.blank?
+              user.update(credit: credit + user.credit.to_f)
+              render :json => {
+                message: "Crédito adicionado com sucesso!",
+                email: user.email,
+                nome: user.nome,
+                credito: user.credit,
+                token: access_token
+              }, :status => 200
+            else
+              render messageFormatter("Usuário Inválido, Verifique as informações", 500)  
+            end
           else
             render messageFormatter("Sessão encerrada automaticamente após 15 minutis, Por favor refaça o Login", 500)
           end
@@ -119,6 +130,48 @@ class UseCaseController < ApplicationController
   end
 
   def editUser
+    hmac_secret = request.headers['HTTP_AUTHORIZATION']
+    access_token = request.headers['HTTP_TOKEN_ACCESS']
+    if hmac_secret.blank?
+      render messageFormatter("Erro de autenticação", 401)
+    else
+      if !request.headers['HTTP_EMAIL'].blank?
+        email = request.headers['HTTP_EMAIL']
+      end
+      if !request.headers['HTTP_PASSWORD'].blank?
+        request_password = request.headers['HTTP_PASSWORD']
+      end
+      if !request.headers['HTTP_NOME'].blank?
+        nome = request.headers['HTTP_NOME']
+      end
+      token_decoded = decryptParams(access_token, hmac_secret)
+      date_hour_token = token_decoded[0]['session'].to_datetime
+      if date_hour_token >= 15.minute.ago
+        user = User.find_by(email: token_decoded[0]['email'])
+        if !user.blank?
+          user.update(email: email) if !email.blank?
+          user.update(nome: nome) if !nome.blank?
+          if !request_password.blank?
+            password = {
+              password: request_password
+            }
+            password_coded = crypteParams(password, hmac_secret)
+            user.update(password: password_coded)
+          end
+          render :json => {
+            message: "Usuário editado com Sucesso!",
+            email: user.email,
+            nome: user.nome,
+            credito: user.credit,
+            token: access_token
+          }, :status => 200
+        else
+          render messageFormatter("Usuário Inválido, Verifique as informações", 500)  
+        end
+      else
+        render messageFormatter("Sessão encerrada automaticamente após 15 minutis, Por favor refaça o Login", 500)
+      end
+    end
   end
 
   private
