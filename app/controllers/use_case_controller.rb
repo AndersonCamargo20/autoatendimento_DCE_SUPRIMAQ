@@ -1,6 +1,7 @@
 class UseCaseController < ApplicationController
   require 'jwt'
   protect_from_forgery prepend: true
+
   def newUser
     user = User.new
     hmac_secret = request.headers['HTTP_AUTHORIZATION']
@@ -26,9 +27,6 @@ class UseCaseController < ApplicationController
             render messageFormatter("E-mail já cadastrado, informe outro e-mail", 404)
           else
             user = User.create(nome: nome, email: email, password: password_coded, credit: 0, created_at: DateTime.current, updated_at: DateTime.current)
-            if !request.headers['HTTP_ADMIN'].blank? && request.headers['HTTP_ADMIN'] == "true"
-              user.update(admin: true)
-            end
             access = {
               email: request.headers['HTTP_EMAIL'],
               session: DateTime.current
