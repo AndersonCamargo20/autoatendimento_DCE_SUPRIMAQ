@@ -1,8 +1,9 @@
 Rails.application.routes.draw do
-  post  "/newUser"       => "use_case#newUser",      :as => :newUser
-  post "/loginUser"     => "use_case#loginUser",    :as => :loginUser
-  post  "/addCredits"    => "use_case#addCredits",  :as => :addCredits
-  post  "/editUser"      => "use_case#editUser",    :as => :editUser
+  post  "/newUser"       => "use_case#newUser",           :as => :newUser
+  post  "/loginUser"     => "use_case#loginUser",         :as => :loginUser
+  post  "/addCredits"    => "use_case#addCredits",        :as => :addCredits
+  post  "/editUser"      => "use_case#editUser",          :as => :editUser
+  get   "/allUsers"      => "use_case#returnAllUsers",    :as => :returnAllUsers
   
   # For details on the DSL available within this file, see http://guides.rubyonrails.org/routing.html
 end

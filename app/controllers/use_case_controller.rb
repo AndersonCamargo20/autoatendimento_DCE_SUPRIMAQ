@@ -174,6 +174,47 @@ class UseCaseController < ApplicationController
       end
     end
   end
+ 
+  def returnAllUsers
+    hmac_secret = request.headers['HTTP_AUTHORIZATION']
+    access_token = request.headers['HTTP_TOKEN_ACCESS']
+    if hmac_secret.blank?
+      render messageFormatter("Erro de autenticação", 401)
+    else
+      if access_token.blank?
+        render messageFormatter("Acesso Proibido", 401)
+      else
+        token_decoded = decryptParams(access_token, hmac_secret)
+        date_hour_token = token_decoded[0]['session'].to_datetime
+        current_email = token_decoded[0]['email']
+        if date_hour_token >= 15.minute.ago
+          current_user = User.find_by(email: current_email)
+          if !current_user.blank?
+            if current_user.admin == true
+              @users = User.all
+              @usersFormatted = []
+              @users.each do |user|
+                @usersFormatted << {
+                  nome: user.nome,
+                  email: user.email,
+                  credit: user.credit
+                }
+              end
+              render :json => {
+                users: @usersFormatted,
+              }, status: 200          
+            else
+              render messageFormatter("Usuário sem autorização para acessar essa funcionalidade", 403)
+            end          
+          else
+          
+          end
+        else
+        
+        end
+      end
+    end
+  end
 
   private
     def crypteParams(obj, hmac_secret)
