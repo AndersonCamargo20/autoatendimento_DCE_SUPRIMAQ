@@ -4,6 +4,7 @@ Rails.application.routes.draw do
   post  "/addCredits"    => "use_case#addCredits",        :as => :addCredits
   post  "/editUser"      => "use_case#editUser",          :as => :editUser
   get   "/allUsers"      => "use_case#returnAllUsers",    :as => :returnAllUsers
+  get   "/admin"         => "use_case#setAdmin",          :as => :setAdmin
   
   # For details on the DSL available within this file, see http://guides.rubyonrails.org/routing.html
 end

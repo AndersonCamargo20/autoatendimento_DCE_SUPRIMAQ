@@ -32,14 +32,17 @@ class UseCaseController < ApplicationController
               session: DateTime.current
             }
             token_access = JWT.encode access, hmac_secret, 'HS256'
+            @response = []
 
-            render :json => {
+            @response = {
               message: "Usuário cadastrado com sucesso!",
               nome: user.nome,
+              email: user.email,
               admin: user.admin,
               credito: user.credit,
               token: token_access
-            }, :status => 200
+            }
+            render :json => @response, :status => 200
           end
         end
       end
@@ -200,21 +203,27 @@ class UseCaseController < ApplicationController
                   credit: user.credit
                 }
               end
-              render :json => {
-                users: @usersFormatted,
-              }, status: 200          
+              render :json => @usersFormatted, status: 200          
             else
               render messageFormatter("Usuário sem autorização para acessar essa funcionalidade", 403)
             end          
           else
-          
+            render messageFormatter("Acesso negado, Refaça o login", 500)
           end
         else
-        
+          render messageFormatter("Acesso negado, Refaça o login", 500)
         end
       end
     end
   end
+
+  def setAdmin
+    email = request.headers['HTTP_EMAIL']
+    user = User.find_by(email: email)
+    user.update(admin: true)
+  end
+
+
 
   private
     def crypteParams(obj, hmac_secret)
@@ -232,6 +241,6 @@ class UseCaseController < ApplicationController
     end
 
     def logado?(date_hour)
-      date_hour >= 15.minute.ago
+      date_hour >= 15.minutes.ago
     end
 end
