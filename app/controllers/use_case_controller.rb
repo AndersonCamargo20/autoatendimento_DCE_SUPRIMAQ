@@ -193,7 +193,7 @@ class UseCaseController < ApplicationController
         if date_hour_token >= 15.minute.ago
           current_user = User.find_by(email: current_email)
           if !current_user.blank?
-            if current_user.admin == true
+            if current_user.admin?
               @users = User.all
               @usersFormatted = []
               @users.each do |user|
@@ -223,7 +223,75 @@ class UseCaseController < ApplicationController
     user.update(admin: true)
   end
 
+  def printerPage
+    hmac_secret = request.headers['HTTP_AUTHORIZATION']
+    access_token = request.headers['HTTP_TOKEN_ACCESS']
+    if hmac_secret.blank?
+      render messageFormatter("Erro de autenticação", 401)
+    else
+      if access_token.blank?
+        render messageFormatter("Acesso Proibido", 401)
+      else
+        token_decoded = decryptParams(access_token, hmac_secret)
+        date_hour_token = token_decoded[0]['session'].to_datetime
+        current_email = token_decoded[0]['email']
+        if date_hour_token >= 15.minute.ago
+          current_user = User.find_by(email: current_email)
+          if !current_user.blank?
+            printer_token = request.headers['PRINTER']
+            printer = Printer.find_by(:id: printer_token)
+            if !printer.blank?
+              qtd_pages = request.headers['QTD_PAGES']
+              value_want_print = qtd_pages * print_value
+              value_want_print = value_want_print.to_f
+              if value_want_print <= current_user.credit
+                diference = credit - value_want_print
+                current_user.update(credit: diference)             
+              else
+                render messageFormatter("Crédito insuficiente para realizar a impressão!", 401)
+              end
+            else
+              render messageFormatter("A impressero selecionada não existe, impossível realizar a impressão!", 401)
+            end
+          else
+            render messageFormatter("Usuário não existente ou sem sutorização!", 403)  
+          end
+        else
+          render messageFormatter("Sessão encerrada, para continuar realize o login novamente", 403)
+        end
+      end
+    end
+  end
 
+  def refreshPage
+    hmac_secret = request.headers['HTTP_AUTHORIZATION']
+    access_token = request.headers['HTTP_TOKEN_ACCESS']
+    if hmac_secret.blank?
+      render messageFormatter("Erro de autenticação", 401)
+    else
+      if access_token.blank?
+        render messageFormatter("Acesso Proibido", 401)
+      else
+        token_decoded = decryptParams(access_token, hmac_secret)
+        date_hour_token = token_decoded[0]['session'].to_datetime
+        if self.logado?(date_hour_token)
+          email_decoded = token_decoded[0]['email']
+          current_user = User.find_by(email: email_decoded)
+          render :json => {
+            message: "Atualização de status realizada com sucesso",
+            email: current_user.email,
+            nome: current_user.nome,
+            admin: current_user.admin,
+            credito: current_user.credit,
+            token: access_token
+          }, :status => 200
+        else
+          render messageFormatter("Acesso negado, Refaça o login", 500)
+        end
+      end
+    
+    end
+  end
 
   private
     def crypteParams(obj, hmac_secret)
@@ -239,7 +307,8 @@ class UseCaseController < ApplicationController
         message: msg,
       }, status: status
     end
-
+  
+    public
     def logado?(date_hour)
       date_hour >= 15.minutes.ago
     end
