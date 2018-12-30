@@ -3,5 +3,13 @@
 #
 # Examples:
 #
-#   movies = Movie.create([{ name: 'Star Wars' }, { name: 'Lord of the Rings' }])
-#   Character.create(name: 'Luke', movie: movies.first)
+#   movies = Movie.create([{ name: 'Star Wars' }, { name:1423
+Printer.create(model: '1423', type: "not_color", print_value: 0.10)
+Printer.create(model: '1118', type: "not_color", print_value: 0.10)
+Printer.create(model: '1231', type: "not_color", print_value: 0.10)
+Printer.create(model: '1212', type: "not_color", print_value: 0.10)
+Printer.create(model: '2160', type: "not_color", print_value: 0.10)
+Printer.create(model: '2276', type: "not_color", print_value: 0.10)
+
+
+Printer.create(model: '1854', type: "color", print_value: 0.25)

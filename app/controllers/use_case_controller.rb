@@ -85,7 +85,6 @@ class UseCaseController < ApplicationController
             else
               render messageFormatter("Erro ao tenatr realizar Login, Senha e/ou Email inválidos", 403)
             end
-            
           else
             render messageFormatter("Erro ao tenatr realizar Login, Senha e/ou Email inválidos", 403)
           end
@@ -242,10 +241,9 @@ class UseCaseController < ApplicationController
             printer = Printer.find_by(:id: printer_token)
             if !printer.blank?
               qtd_pages = request.headers['QTD_PAGES']
-              value_want_print = qtd_pages * print_value
-              value_want_print = value_want_print.to_f
+              value_want_print = (qtd_pages * print_value).to_f
               if value_want_print <= current_user.credit
-                diference = credit - value_want_print
+                diference = current_user.credit - value_want_print
                 current_user.update(credit: diference)             
               else
                 render messageFormatter("Crédito insuficiente para realizar a impressão!", 401)
@@ -308,8 +306,10 @@ class UseCaseController < ApplicationController
       }, status: status
     end
   
-    public
+  
+  public
     def logado?(date_hour)
       date_hour >= 15.minutes.ago
     end
+
 end
