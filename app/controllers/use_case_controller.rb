@@ -2,6 +2,7 @@ class UseCaseController < ApplicationController
   require 'jwt'
   protect_from_forgery prepend: true
 
+  #OK
   def newUser
     user = User.new
     hmac_secret = request.headers['HTTP_AUTHORIZATION']
@@ -49,13 +50,14 @@ class UseCaseController < ApplicationController
     end
   end
   
+  #OK
   def loginUser
     hmac_secret = request.headers['HTTP_AUTHORIZATION']
     if hmac_secret.blank?
       render :json => messageFormatter("Erro de autenticação", 401)
     else
       if hmac_secret != "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJjb21wYW55X2lkIjoxOH0.yRP59sRufpm9ro6RGZ8nuZcfRVMKqkCvneBz6KZB4mU"
-        render messageFormatter("Erro de autenticação", 403)
+        render messageFormatter("Erro de autenticação", 401)
       else
         if request.headers['HTTP_PASSWORD'].blank? || request.headers['HTTP_EMAIL'].blank?
           render messageFormatter("Um ou mais parâmetros não foram informados", 404)
@@ -93,6 +95,7 @@ class UseCaseController < ApplicationController
     end
   end
 
+  #OK
   def addCredits
     hmac_secret = request.headers['HTTP_AUTHORIZATION']
     access_token = request.headers['HTTP_TOKEN_ACCESS']
@@ -131,6 +134,7 @@ class UseCaseController < ApplicationController
     end
   end
 
+  #OK
   def editUser
     hmac_secret = request.headers['HTTP_AUTHORIZATION']
     access_token = request.headers['HTTP_TOKEN_ACCESS']
@@ -176,7 +180,8 @@ class UseCaseController < ApplicationController
       end
     end
   end
- 
+  
+  #OK
   def returnAllUsers
     hmac_secret = request.headers['HTTP_AUTHORIZATION']
     access_token = request.headers['HTTP_TOKEN_ACCESS']
@@ -222,6 +227,7 @@ class UseCaseController < ApplicationController
     user.update(admin: true)
   end
 
+  #OK
   def printerPage
     hmac_secret = request.headers['HTTP_AUTHORIZATION']
     access_token = request.headers['HTTP_TOKEN_ACCESS']
@@ -238,13 +244,16 @@ class UseCaseController < ApplicationController
           current_user = User.find_by(email: current_email)
           if !current_user.blank?
             printer_token = request.headers['PRINTER']
-            printer = Printer.find_by(:id: printer_token)
+            printer = Printer.find_by(model: printer_token).first
             if !printer.blank?
               qtd_pages = request.headers['QTD_PAGES']
               value_want_print = (qtd_pages * print_value).to_f
               if value_want_print <= current_user.credit
-                diference = current_user.credit - value_want_print
-                current_user.update(credit: diference)             
+                diference = current_user.credit - value_want_print  
+                current_user.update(credit: diference) 
+                render :json => {
+                  message: "Impressão realizada com sucesso!",
+                }, :status => 200            
               else
                 render messageFormatter("Crédito insuficiente para realizar a impressão!", 401)
               end
@@ -261,6 +270,7 @@ class UseCaseController < ApplicationController
     end
   end
 
+  #OK
   def refreshPage
     hmac_secret = request.headers['HTTP_AUTHORIZATION']
     access_token = request.headers['HTTP_TOKEN_ACCESS']
@@ -275,14 +285,18 @@ class UseCaseController < ApplicationController
         if self.logado?(date_hour_token)
           email_decoded = token_decoded[0]['email']
           current_user = User.find_by(email: email_decoded)
-          render :json => {
-            message: "Atualização de status realizada com sucesso",
-            email: current_user.email,
-            nome: current_user.nome,
-            admin: current_user.admin,
-            credito: current_user.credit,
-            token: access_token
-          }, :status => 200
+          if current_user
+            render :json => {
+              message: "Atualização de status realizada com sucesso",
+              email: current_user.email,
+              nome: current_user.nome,
+              admin: current_user.admin,
+              credito: current_user.credit,
+              token: access_token
+            }, :status => 200
+          else
+            render messageFormatter("Usuário não existente ou sem sutorização!", 403)  
+          end
         else
           render messageFormatter("Acesso negado, Refaça o login", 500)
         end
