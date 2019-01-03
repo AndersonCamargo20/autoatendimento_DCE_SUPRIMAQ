@@ -204,7 +204,7 @@ class UseCaseController < ApplicationController
                 @usersFormatted << {
                   nome: user.nome,
                   email: user.email,
-                  credit: user.credit
+                  credito: user.credit
                 }
               end
               render :json => @usersFormatted, status: 200          
