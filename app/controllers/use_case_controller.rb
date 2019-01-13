@@ -244,14 +244,20 @@ class UseCaseController < ApplicationController
         if date_hour_token >= 15.minute.ago
           current_user = User.find_by(email: current_email)
           if !current_user.blank?
-            printer_token = request.headers['PRINTER']
-            printer = Impressora.find_by(modelo: printer_token).first
+            printer_token = request.headers['HTTP_PRINTER']
+            printer = Impressora.first
+            
             if !printer.blank?
-              qtd_pages = request.headers['QTD_PAGES']
-              print_value = printer.preco
-              value_want_print = (qtd_pages * print_value).to_f
-              if value_want_print <= current_user.credit
-                diference = current_user.credit - value_want_print  
+              qtd_pages = request.headers['HTTP_QTD_PAGES']
+              puts "modelo: #{printer.modelo}"
+              puts "tipo: #{printer.tipo}"
+              puts "valor: #{printer.preco}"  
+              system "pause"
+              
+              print_value = printer.preco.to_f
+              value_want_print = (qtd_pages * printer.preco).to_f
+              if value_want_print <= (current_user.credit).to_f
+                diference = (current_user.credit.to_f - value_want_print.to_f).to_f  
                 current_user.update(credit: diference)
                 render :json => {
                   message: "Impressão realizada com sucesso!",
@@ -313,6 +319,9 @@ class UseCaseController < ApplicationController
     end
 
     def decryptParams(obj, hmac_secret)
+      puts "OBJ: #{obj}"
+      puts "HMAC:#{hmac_secret}"
+      system "pause"
       JWT.decode(obj, hmac_secret, true, algorithm: 'HS256')
     end
 
