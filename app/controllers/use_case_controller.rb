@@ -1,6 +1,7 @@
 class UseCaseController < ApplicationController
   require 'jwt'
   protect_from_forgery prepend: true
+  require 'net/http'
 
   #OK
   def newUser
@@ -244,13 +245,14 @@ class UseCaseController < ApplicationController
           current_user = User.find_by(email: current_email)
           if !current_user.blank?
             printer_token = request.headers['PRINTER']
-            printer = Printer.find_by(model: printer_token).first
+            printer = Impressora.find_by(modelo: printer_token).first
             if !printer.blank?
               qtd_pages = request.headers['QTD_PAGES']
+              print_value = printer.preco
               value_want_print = (qtd_pages * print_value).to_f
               if value_want_print <= current_user.credit
                 diference = current_user.credit - value_want_print  
-                current_user.update(credit: diference) 
+                current_user.update(credit: diference)
                 render :json => {
                   message: "Impressão realizada com sucesso!",
                 }, :status => 200            

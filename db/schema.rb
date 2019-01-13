@@ -10,7 +10,15 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2018_09_26_023705) do
+ActiveRecord::Schema.define(version: 2019_01_13_204109) do
+
+  create_table "impressoras", force: :cascade do |t|
+    t.string "modelo"
+    t.float "preco"
+    t.string "tipo"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
 
   create_table "printers", force: :cascade do |t|
     t.string "model"
