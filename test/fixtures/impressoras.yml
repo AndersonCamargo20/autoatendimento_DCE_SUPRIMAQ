@@ -1,0 +1,11 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  modelo: MyString
+  preco: 1.5
+  tipo: MyString
+
+two:
+  modelo: MyString
+  preco: 1.5
+  tipo: MyString

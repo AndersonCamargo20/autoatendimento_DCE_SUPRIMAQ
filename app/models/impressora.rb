@@ -1,0 +1,2 @@
+class Impressora < ApplicationRecord
+end

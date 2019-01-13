@@ -245,7 +245,7 @@ class UseCaseController < ApplicationController
           current_user = User.find_by(email: current_email)
           if !current_user.blank?
             printer_token = request.headers['HTTP_PRINTER']
-            printer = Impressora.first
+            printer = Printer.first
             
             if !printer.blank?
               qtd_pages = request.headers['HTTP_QTD_PAGES']
