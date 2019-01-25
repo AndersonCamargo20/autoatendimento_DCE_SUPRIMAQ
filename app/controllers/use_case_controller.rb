@@ -281,7 +281,10 @@ class UseCaseController < ApplicationController
   #OK
   def refreshPage
     hmac_secret = request.headers['HTTP_AUTHORIZATION']
-    access_token = request.headers['HTTP_TOKEN_ACCESS']
+    access_token = request.body.read
+    puts "TOKEN2\n\n"
+    puts access_token
+    puts "FIM...."
     if hmac_secret.blank?
       render messageFormatter("Erro de autenticação", 401)
     else
@@ -321,7 +324,6 @@ class UseCaseController < ApplicationController
     def decryptParams(obj, hmac_secret)
       puts "OBJ: #{obj}"
       puts "HMAC:#{hmac_secret}"
-      system "pause"
       JWT.decode(obj, hmac_secret, true, algorithm: 'HS256')
     end
 
