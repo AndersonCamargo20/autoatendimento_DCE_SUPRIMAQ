@@ -280,8 +280,8 @@ class UseCaseController < ApplicationController
 
   #OK
   def refreshPage
-    hmac_secret = request.headers['HTTP_AUTHORIZATION']
-    access_token = request.headers['HTTP_TOKEN']
+    hmac_secret = request.headers['AUTHORIZATION']
+    access_token = request.headers['TOKEN']
     request.headers.each do |x|
       print "HEADER\n"
       print x
