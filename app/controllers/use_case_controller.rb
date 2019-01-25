@@ -4,6 +4,8 @@ class UseCaseController < ApplicationController
   require 'net/http'
   require 'json'
 
+  
+
   #OK
   def newUser
     user = User.new
@@ -186,14 +188,14 @@ class UseCaseController < ApplicationController
   #OK
   def returnAllUsers
     hmac_secret = request.headers['HTTP_AUTHORIZATION']
-    access_token = request.headers['HTTP_TOKEN_ACCESS']
+    access_token = JSON.parse(request.body.read)
     if hmac_secret.blank?
       render messageFormatter("Erro de autenticação", 401)
     else
       if access_token.blank?
         render messageFormatter("Acesso Proibido", 401)
       else
-        token_decoded = decryptParams(access_token, hmac_secret)
+        token_decoded = decryptParams(access_token['token'], hmac_secret)
         date_hour_token = token_decoded[0]['session'].to_datetime
         current_email = token_decoded[0]['email']
         if date_hour_token >= 15.minute.ago
@@ -232,14 +234,14 @@ class UseCaseController < ApplicationController
   #OK
   def printerPage
     hmac_secret = request.headers['HTTP_AUTHORIZATION']
-    access_token = request.headers['HTTP_TOKEN_ACCESS']
+    access_token = JSON.parse(request.body.read)
     if hmac_secret.blank?
       render messageFormatter("Erro de autenticação", 401)
     else
       if access_token.blank?
         render messageFormatter("Acesso Proibido", 401)
       else
-        token_decoded = decryptParams(access_token, hmac_secret)
+        token_decoded = decryptParams(access_token['token'], hmac_secret)
         date_hour_token = token_decoded[0]['session'].to_datetime
         current_email = token_decoded[0]['email']
         if date_hour_token >= 15.minute.ago
@@ -283,35 +285,37 @@ class UseCaseController < ApplicationController
   def refreshPage
     hmac_secret = request.headers['HTTP_AUTHORIZATION']
     access_token = JSON.parse(request.body.read)
-    Rails.logger.info "\n\n\n\n\n\nYear: #{Time.now.year}"
     if hmac_secret.blank?
-      render messageFormatter("Erro de autenticação", 401)
+      render messageFormatter("Authorization não informado", 401)
     else
-      if access_token.blank?
-        render messageFormatter("Acesso Proibido", 401)
+      if !testAuthorization(hmac_secret)
+        render messageFormatter("Authorization inválido", 401)
       else
-        token_decoded = decryptParams(access_token["token"].to_s, hmac_secret)
-        date_hour_token = token_decoded[0]['session'].to_datetime
-        if self.logado?(date_hour_token)
-          email_decoded = token_decoded[0]['email']
-          current_user = User.find_by(email: email_decoded)
-          if current_user
-            render :json => {
-              message: "Atualização de status realizada com sucesso",
-              email: current_user.email,
-              nome: current_user.nome,
-              admin: current_user.admin,
-              credito: current_user.credit,
-              token: access_token['token']
-            }, :status => 200
-          else
-            render messageFormatter("Usuário não existente ou sem sutorização!", 403)  
-          end
+        if access_token.blank?
+          render messageFormatter("Access Token não informado", 401)
         else
-          render messageFormatter("Acesso negado, Refaça o login", 500)
+          token_decoded = decryptParams(access_token["token"].to_s, hmac_secret)
+          date_hour_token = token_decoded[0]['session'].to_datetime
+          if self.logado?(date_hour_token)
+            email_decoded = token_decoded[0]['email']
+            current_user = User.find_by(email: email_decoded)
+            if current_user
+              render :json => {
+                message: "Atualização de status realizada com sucesso",
+                email: current_user.email,
+                nome: current_user.nome,
+                admin: current_user.admin,
+                credito: current_user.credit,
+                token: access_token['token']
+              }, :status => 200
+            else
+              render messageFormatter("Usuário não existente ou sem sutorização!", 403)  
+            end
+          else
+            render messageFormatter("Login expirado! Refaça o login", 500)
+          end
         end
       end
-    
     end
   end
 
@@ -330,6 +334,10 @@ class UseCaseController < ApplicationController
       return :json => {
         message: msg,
       }, status: status
+    end
+
+    def testAuthorization(secret)
+      secret == "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJjb21wYW55X2lkIjoxOH0.yRP59sRufpm9ro6RGZ8nuZcfRVMKqkCvneBz6KZB4mU"
     end
   
   
