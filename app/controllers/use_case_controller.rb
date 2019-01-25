@@ -6,7 +6,7 @@ class UseCaseController < ApplicationController
   #OK
   def newUser
     user = User.new
-    hmac_secret = request.headers['HTTP_AUTHORIZATION']
+    hmac_secret = request.headers['AUTHORIZATION']
     if hmac_secret.blank?
       render :json => messageFormatter("Erro de autenticação", 401)
     else
