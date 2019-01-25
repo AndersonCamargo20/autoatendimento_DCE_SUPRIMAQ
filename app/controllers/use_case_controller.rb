@@ -332,8 +332,6 @@ class UseCaseController < ApplicationController
     end
 
     def decryptParams(obj, hmac_secret)
-      puts "OBJ: #{obj}"
-      puts "HMAC:#{hmac_secret}"
       JWT.decode(obj, hmac_secret, true, algorithm: 'HS256')
     end
 
