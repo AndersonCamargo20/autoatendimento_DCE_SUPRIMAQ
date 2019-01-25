@@ -6,14 +6,14 @@ class UseCaseController < ApplicationController
 
   
 
-  #OK
+  #VERIFICADO 1
   def newUser
     user = User.new
     hmac_secret = request.headers['AUTHORIZATION']
     if hmac_secret.blank?
       render :json => messageFormatter("Erro de autenticação", 401)
     else
-      if hmac_secret != "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJjb21wYW55X2lkIjoxOH0.yRP59sRufpm9ro6RGZ8nuZcfRVMKqkCvneBz6KZB4mU"
+      if !testAuthorization(hmac_secret)
         render messageFormatter("Erro de autenticação", 403)
       else
         if request.headers['HTTP_PASSWORD'].blank? || request.headers['HTTP_EMAIL'].blank?  || request.headers['HTTP_NOME'].blank?
@@ -54,13 +54,13 @@ class UseCaseController < ApplicationController
     end
   end
   
-  #OK
+  #VERIFICADO 1
   def loginUser
     hmac_secret = request.headers['HTTP_AUTHORIZATION']
     if hmac_secret.blank?
       render :json => messageFormatter("Erro de autenticação", 401)
     else
-      if hmac_secret != "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJjb21wYW55X2lkIjoxOH0.yRP59sRufpm9ro6RGZ8nuZcfRVMKqkCvneBz6KZB4mU"
+      if !testAuthorization(hmac_secret)
         render messageFormatter("Erro de autenticação", 401)
       else
         if request.headers['HTTP_PASSWORD'].blank? || request.headers['HTTP_EMAIL'].blank?
@@ -102,36 +102,40 @@ class UseCaseController < ApplicationController
   #OK
   def addCredits
     hmac_secret = request.headers['HTTP_AUTHORIZATION']
-    access_token = request.headers['HTTP_TOKEN_ACCESS']
+    access_token = JSON.parse(request.body.read)
     credit = request.headers['HTTP_CREDIT'].to_f
     if hmac_secret.blank?
-      render messageFormatter("Acesso proibido", 401)
+      render messageFormatter("Authorization não informado", 401)
     else
       if access_token.blank?
-        render messageFormatter("Erro de autenticação do usuário", 401)
+        render messageFormatter("Access Token não informado", 401)
       else
-        if credit.blank?
-          render messageFormatter("Um ou mais valores não foram informados, por favor verifique os dados e tente novamente!", 404)
+        if !testAuthorization(hmac_secret)
+          render messageFormatter("Authorization inválido", 401)
         else
-          token_decoded = decryptParams(access_token, hmac_secret)
-          date_hour_token = token_decoded[0]['session'].to_datetime
-          if date_hour_token >= 15.minute.ago
-            user = User.find_by(email: token_decoded[0]['email'])
-            if !user.blank?
-              user.update(credit: credit + user.credit.to_f)
-              render :json => {
-                message: "Crédito adicionado com sucesso!",
-                email: user.email,
-                nome: user.nome,
-                admin: user.admin,
-                credito: user.credit,
-                token: access_token
-              }, :status => 200
-            else
-              render messageFormatter("Usuário Inválido, Verifique as informações", 500)  
-            end
+          if credit.blank?
+            render messageFormatter("Um ou mais dados não foram informados, por favor verifique os dados e tente novamente!", 404)
           else
-            render messageFormatter("Sessão encerrada automaticamente após 15 minutis, Por favor refaça o Login", 500)
+            token_decoded = decryptParams(access_token, hmac_secret)
+            date_hour_token = token_decoded[0]['session'].to_datetime
+            if date_hour_token >= 15.minute.ago
+              user = User.find_by(email: token_decoded[0]['email'])
+              if !user.blank?
+                user.update(credit: credit + user.credit.to_f)
+                render :json => {
+                  message: "Crédito adicionado com sucesso!",
+                  email: user.email,
+                  nome: user.nome,
+                  admin: user.admin,
+                  credito: user.credit,
+                  token: access_token
+                }, :status => 200
+              else
+                render messageFormatter("Usuário Inválido, Verifique as informações", 500)  
+              end
+            else
+              render messageFormatter("Sessão encerrada automaticamente após 15 minutis, Por favor refaça o Login", 500)
+            end
           end
         end
       end
@@ -145,6 +149,9 @@ class UseCaseController < ApplicationController
     if hmac_secret.blank?
       render messageFormatter("Erro de autenticação", 401)
     else
+      if !testAuthorization(hmac_secret)
+        render messageFormatter("Authorization inválido", 401)
+      else
       if !request.headers['HTTP_EMAIL'].blank?
         email = request.headers['HTTP_EMAIL']
       end
