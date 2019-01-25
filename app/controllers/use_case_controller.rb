@@ -282,6 +282,10 @@ class UseCaseController < ApplicationController
   def refreshPage
     hmac_secret = request.headers['HTTP_AUTHORIZATION']
     access_token = request.headers['HTTP_TOKEN']
+    request.headers.each do |x|
+      puts "HEADER\n"
+      puts x
+    end 
     if hmac_secret.blank?
       render messageFormatter("Erro de autenticação", 401)
     else
