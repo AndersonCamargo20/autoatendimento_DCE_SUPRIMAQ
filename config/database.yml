@@ -21,6 +21,5 @@ test:
   database: db/test.sqlite3
 
 production:
-  database: impressora_production
-  adapter: postgresql
-  host: localhost
+  <<: *default
+  database: db/production.sqlite3
