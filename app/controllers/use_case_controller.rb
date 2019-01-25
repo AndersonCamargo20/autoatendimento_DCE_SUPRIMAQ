@@ -103,7 +103,7 @@ class UseCaseController < ApplicationController
     access_token = request.headers['HTTP_TOKEN_ACCESS']
     credit = request.headers['HTTP_CREDIT'].to_f
     if hmac_secret.blank?
-      render messageFormatter("Erro de autenticação", 401)
+      render messageFormatter("Acesso proibido", 401)
     else
       if access_token.blank?
         render messageFormatter("Erro de autenticação do usuário", 401)
