@@ -5,7 +5,7 @@ Rails.application.routes.draw do
   post  "/editUser"      => "use_case#editUser",          :as => :editUser
   get   "/allUsers"      => "use_case#returnAllUsers",    :as => :returnAllUsers
   get   "/admin"         => "use_case#setAdmin",          :as => :setAdmin
-  post  "/refreshUser"       => "use_case#refreshPage",       :as => :refreshPage
+  post  "/refreshUser"       => "use_case#refreshPage",   :as => :refreshPage
   #get   "/refresh"       => "use_case#refreshPage",       :as => :refreshPage
   get   "/print"         => "use_case#printerPage",       :as => :printerPage
   

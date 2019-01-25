@@ -106,7 +106,7 @@ class UseCaseController < ApplicationController
       render messageFormatter("Erro de autenticação", 401)
     else
       if access_token.blank?
-        render messageFormatter("Erro de autenticação", 401)
+        render messageFormatter("Erro de autenticação do usuário", 401)
       else
         if credit.blank?
           render messageFormatter("Um ou mais valores não foram informados, por favor verifique os dados e tente novamente!", 404)
