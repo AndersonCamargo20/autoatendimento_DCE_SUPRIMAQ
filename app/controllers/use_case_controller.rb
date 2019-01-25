@@ -302,7 +302,7 @@ class UseCaseController < ApplicationController
               nome: current_user.nome,
               admin: current_user.admin,
               credito: current_user.credit,
-              token: access_token
+              token: access_token['token']
             }, :status => 200
           else
             render messageFormatter("Usuário não existente ou sem sutorização!", 403)  
