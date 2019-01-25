@@ -2,6 +2,7 @@ class UseCaseController < ApplicationController
   require 'jwt'
   protect_from_forgery prepend: true
   require 'net/http'
+  require 'json'
 
   #OK
   def newUser
@@ -281,17 +282,15 @@ class UseCaseController < ApplicationController
   #OK
   def refreshPage
     hmac_secret = request.headers['HTTP_AUTHORIZATION']
-    access_token = request.body.read
-    puts "TOKEN2\n\n"
-    puts access_token
-    puts "FIM...."
+    access_token = JSON.parse(request.body.read)
+    puts "\n\n\n\n\n #{access_token["token"]} \n\n\n\n"
     if hmac_secret.blank?
       render messageFormatter("Erro de autenticação", 401)
     else
       if access_token.blank?
         render messageFormatter("Acesso Proibido", 401)
       else
-        token_decoded = decryptParams(access_token, hmac_secret)
+        token_decoded = decryptParams(access_token["token"], hmac_secret)
         date_hour_token = token_decoded[0]['session'].to_datetime
         if self.logado?(date_hour_token)
           email_decoded = token_decoded[0]['email']
