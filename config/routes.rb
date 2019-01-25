@@ -6,6 +6,7 @@ Rails.application.routes.draw do
   get   "/allUsers"      => "use_case#returnAllUsers",    :as => :returnAllUsers
   get   "/admin"         => "use_case#setAdmin",          :as => :setAdmin
   post  "/refresh"       => "use_case#refreshPage",       :as => :refreshPage
+  get   "/refresh"       => "use_case#refreshPage",       :as => :refreshPage
   get   "/print"         => "use_case#printerPage",       :as => :printerPage
   
   # For details on the DSL available within this file, see http://guides.rubyonrails.org/routing.html
