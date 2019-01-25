@@ -290,7 +290,7 @@ class UseCaseController < ApplicationController
       if access_token.blank?
         render messageFormatter("Acesso Proibido", 401)
       else
-        token_decoded = decryptParams(access_token["token"], hmac_secret)
+        token_decoded = decryptParams(access_token["token"].to_s, hmac_secret)
         date_hour_token = token_decoded[0]['session'].to_datetime
         if self.logado?(date_hour_token)
           email_decoded = token_decoded[0]['email']
