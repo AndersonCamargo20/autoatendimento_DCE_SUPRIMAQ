@@ -104,38 +104,42 @@ class UseCaseController < ApplicationController
     hmac_secret = request.headers['HTTP_AUTHORIZATION']
     access_token = JSON.parse(request.body.read)
     credit = request.headers['HTTP_CREDIT'].to_f
+    emailToAdd = request.headers['HTTP_EMAIL']
     if hmac_secret.blank?
       render messageFormatter("Authorization não informado", 401)
     else
-      if access_token.blank?
-        render messageFormatter("Access Token não informado", 401)
+      if !testAuthorization(hmac_secret)
+        render messageFormatter("Authorization inválido", 401)
       else
-        if !testAuthorization(hmac_secret)
-          render messageFormatter("Authorization inválido", 401)
+        if access_token.blank?
+          render messageFormatter("Access Token não informado", 401)
         else
-          if credit.blank?
-            render messageFormatter("Um ou mais dados não foram informados, por favor verifique os dados e tente novamente!", 404)
-          else
-            token_decoded = decryptParams(access_token, hmac_secret)
-            date_hour_token = token_decoded[0]['session'].to_datetime
-            if date_hour_token >= 15.minute.ago
-              user = User.find_by(email: token_decoded[0]['email'])
+          token_decoded = decryptParams(access_token["token"].to_s, hmac_secret)
+          date_hour_token = token_decoded[0]['session'].to_datetime
+          if self.logado?(date_hour_token)
+            email_decoded = token_decoded[0]['email']
+            current_user = User.find_by(email: email_decoded)
+            if current_user && current_user.admin?
+              user = User.find_by(email: emailToAdd)
               if !user.blank?
-                user.update(credit: credit + user.credit.to_f)
+                creditos = user.credit.to_f
+                user.update(credit: creditos + credit)
                 render :json => {
-                  message: "Crédito adicionado com sucesso!",
+                  message: "Créditos adicionados com sucesso!",
                   email: user.email,
                   nome: user.nome,
                   admin: user.admin,
                   credito: user.credit,
-                  token: access_token
+                  token: access_token['token']
                 }, :status => 200
               else
-                render messageFormatter("Usuário Inválido, Verifique as informações", 500)  
+                render messageFormatter("Usuário não existente!", 403)
               end
             else
-              render messageFormatter("Sessão encerrada automaticamente após 15 minutis, Por favor refaça o Login", 500)
+              render messageFormatter("Usuário não existente ou sem sutorização!", 403)  
             end
+          else
+            render messageFormatter("Login expirado! Refaça o login", 401)
           end
         end
       end
@@ -145,49 +149,50 @@ class UseCaseController < ApplicationController
   #OK
   def editUser
     hmac_secret = request.headers['HTTP_AUTHORIZATION']
-    access_token = request.headers['HTTP_TOKEN_ACCESS']
+    access_token = JSON.parse(request.body.read)
     if hmac_secret.blank?
       render messageFormatter("Erro de autenticação", 401)
     else
       if !testAuthorization(hmac_secret)
         render messageFormatter("Authorization inválido", 401)
       else
-      if !request.headers['HTTP_EMAIL'].blank?
-        email = request.headers['HTTP_EMAIL']
-      end
-      if !request.headers['HTTP_PASSWORD'].blank?
-        request_password = request.headers['HTTP_PASSWORD']
-      end
-      if !request.headers['HTTP_NOME'].blank?
-        nome = request.headers['HTTP_NOME']
-      end
-      token_decoded = decryptParams(access_token, hmac_secret)
-      date_hour_token = token_decoded[0]['session'].to_datetime
-      if date_hour_token >= 15.minute.ago
-        user = User.find_by(email: token_decoded[0]['email'])
-        if !user.blank?
-          user.update(email: email) if !email.blank?
-          user.update(nome: nome) if !nome.blank?
-          if !request_password.blank?
-            password = {
-              password: request_password
-            }
-            password_coded = crypteParams(password, hmac_secret)
-            user.update(password: password_coded)
-          end
-          render :json => {
-            message: "Usuário editado com Sucesso!",
-            email: user.email,
-            nome: user.nome,
-            admin: user.admin,
-            credito: user.credit,
-            token: access_token
-          }, :status => 200
-        else
-          render messageFormatter("Usuário Inválido, Verifique as informações", 500)  
+        if !request.headers['HTTP_EMAIL'].blank?
+          email = request.headers['HTTP_EMAIL']
         end
-      else
-        render messageFormatter("Sessão encerrada automaticamente após 15 minutis, Por favor refaça o Login", 500)
+        if !request.headers['HTTP_PASSWORD'].blank?
+          request_password = request.headers['HTTP_PASSWORD']
+        end
+        if !request.headers['HTTP_NOME'].blank?
+          nome = request.headers['HTTP_NOME']
+        end
+        token_decoded = decryptParams(access_token, hmac_secret)
+        date_hour_token = token_decoded[0]['session'].to_datetime
+        if date_hour_token >= 15.minute.ago
+          user = User.find_by(email: token_decoded[0]['email'])
+          if !user.blank?
+            user.update(email: email) if !email.blank?
+            user.update(nome: nome) if !nome.blank?
+            if !request_password.blank?
+              password = {
+                password: request_password
+              }
+              password_coded = crypteParams(password, hmac_secret)
+              user.update(password: password_coded)
+            end
+            render :json => {
+              message: "Impressão realizada com sucesso!",
+              email: user.email,
+              nome: user.nome,
+              admin: user.admin,
+              credito: user.credit,
+              token: access_token["token"]
+            }, :status => 200
+          else
+            render messageFormatter("Usuário Inválido, Verifique as informações", 500)  
+          end
+        else
+          render messageFormatter("Sessão encerrada automaticamente após 15 minutis, Por favor refaça o Login", 500)
+        end
       end
     end
   end
@@ -248,41 +253,44 @@ class UseCaseController < ApplicationController
       if access_token.blank?
         render messageFormatter("Acesso Proibido", 401)
       else
-        token_decoded = decryptParams(access_token['token'], hmac_secret)
-        date_hour_token = token_decoded[0]['session'].to_datetime
-        current_email = token_decoded[0]['email']
-        if date_hour_token >= 15.minute.ago
-          current_user = User.find_by(email: current_email)
-          if !current_user.blank?
-            printer_token = request.headers['HTTP_PRINTER']
-            printer = Printer.first
-            
-            if !printer.blank?
-              qtd_pages = request.headers['HTTP_QTD_PAGES']
-              puts "modelo: #{printer.modelo}"
-              puts "tipo: #{printer.tipo}"
-              puts "valor: #{printer.preco}"  
-              system "pause"
-              
-              print_value = printer.preco.to_f
-              value_want_print = (qtd_pages * printer.preco).to_f
-              if value_want_print <= (current_user.credit).to_f
-                diference = (current_user.credit.to_f - value_want_print.to_f).to_f  
-                current_user.update(credit: diference)
-                render :json => {
-                  message: "Impressão realizada com sucesso!",
-                }, :status => 200            
+        if !testAuthorization(hmac_secret)
+          render messageFormatter("Authorization inválido", 401)
+        else
+          token_decoded = decryptParams(access_token['token'], hmac_secret)
+          date_hour_token = token_decoded[0]['session'].to_datetime
+          current_email = token_decoded[0]['email']
+          if date_hour_token >= 15.minute.ago
+            current_user = User.find_by(email: current_email)
+            if !current_user.blank?
+              printer_token = request.headers['HTTP_PRINTER']
+              printer = Impressora.find_by(modelo: printer_token.to_s)
+              if !printer.blank?
+                qtd_pages = request.headers['HTTP_QTD_PAGES']
+                print_value = printer.preco.to_f
+                value_want_print = qtd_pages.to_f * printer.preco
+                if value_want_print.to_f <= current_user.credit.to_f
+                  diference = (current_user.credit.to_f - value_want_print.to_f).to_f  
+                  current_user.update(credit: diference)
+                  render :json => {
+                    message: "Impressoão realizada com sucesso!",
+                    email: current_user.email,
+                    nome: current_user.nome,
+                    admin: current_user.admin,
+                    credito: current_user.credit,
+                    token: access_token['token']
+                  }, :status => 200          
+                else
+                  render messageFormatter("Crédito insuficiente para realizar a impressão!", 401)
+                end
               else
-                render messageFormatter("Crédito insuficiente para realizar a impressão!", 401)
+                render messageFormatter("A impressero selecionada não existe, impossível realizar a impressão!", 401)
               end
             else
-              render messageFormatter("A impressero selecionada não existe, impossível realizar a impressão!", 401)
+              render messageFormatter("Usuário não existente ou sem sutorização!", 403)  
             end
           else
-            render messageFormatter("Usuário não existente ou sem sutorização!", 403)  
+            render messageFormatter("Sessão encerrada, para continuar realize o login novamente", 403)
           end
-        else
-          render messageFormatter("Sessão encerrada, para continuar realize o login novamente", 403)
         end
       end
     end
@@ -325,30 +333,5 @@ class UseCaseController < ApplicationController
       end
     end
   end
-
-  private
-    def crypteParams(obj, hmac_secret)
-      JWT.encode obj, hmac_secret, 'HS256'
-    end
-
-    def decryptParams(obj, hmac_secret)
-      JWT.decode(obj, hmac_secret, true, algorithm: 'HS256')
-    end
-
-    def messageFormatter(msg, status)
-      return :json => {
-        message: msg,
-      }, status: status
-    end
-
-    def testAuthorization(secret)
-      secret == "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJjb21wYW55X2lkIjoxOH0.yRP59sRufpm9ro6RGZ8nuZcfRVMKqkCvneBz6KZB4mU"
-    end
-  
-  
-  public
-    def logado?(date_hour)
-      date_hour >= 15.minutes.ago
-    end
 
 end
