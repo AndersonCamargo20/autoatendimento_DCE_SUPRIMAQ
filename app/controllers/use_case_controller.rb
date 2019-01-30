@@ -165,7 +165,7 @@ class UseCaseController < ApplicationController
         if !request.headers['HTTP_NOME'].blank?
           nome = request.headers['HTTP_NOME']
         end
-        token_decoded = decryptParams(access_token, hmac_secret)
+        token_decoded = decryptParams(access_token['token'], hmac_secret)
         date_hour_token = token_decoded[0]['session'].to_datetime
         if date_hour_token >= 15.minute.ago
           user = User.find_by(email: token_decoded[0]['email'])

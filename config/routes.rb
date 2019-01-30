@@ -3,7 +3,7 @@ Rails.application.routes.draw do
   post  "/loginUser"     => "use_case#loginUser",         :as => :loginUser
   post  "/addCredits"    => "use_case#addCredits",        :as => :addCredits
   post  "/editUser"      => "use_case#editUser",          :as => :editUser
-  get   "/allUsers"      => "use_case#returnAllUsers",    :as => :returnAllUsers
+  post   "/allUsers"      => "use_case#returnAllUsers",    :as => :returnAllUsers
   get   "/admin"         => "use_case#setAdmin",          :as => :setAdmin
   post  "/refreshUser"       => "use_case#refreshPage",   :as => :refreshPage
   #get   "/refresh"       => "use_case#refreshPage",       :as => :refreshPage
