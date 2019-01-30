@@ -43,7 +43,7 @@ class UseCaseController < ApplicationController
               nome: user.nome,
               email: user.email,
               admin: user.admin,
-              credito: user.credit,
+              credito: user.credit, 
               token: token_access
             }
             render :json => @response, :status => 200
@@ -79,14 +79,21 @@ class UseCaseController < ApplicationController
                 session: DateTime.current
               }
               token_access = JWT.encode access, hmac_secret, 'HS256'
-              render :json => {
-                message: "Login efetuado com sucesso!",
-                email: user.email,
-                nome: user.nome,
-                admin: user.admin,
-                credito: user.credit,
-                token: token_access
-              }, :status => 200
+              printer_token = request.headers['HTTP_PRINTER']
+              if !printer_token.blank?
+                printer = Impressora.find_by(modelo: printer_token.to_s) if !printer_token.blank?
+                render :json => {
+                  message: "Login efetuado com sucesso!",
+                  email: user.email,
+                  nome: user.nome,
+                  admin: user.admin,
+                  valor_impressao: printer.preco,
+                  credito: user.credit,
+                  token: token_access
+                }, :status => 200
+              else
+                render messageFormatter("Impressora inválida, envie ua impressora válida para continuar", 403)
+              end
             else
               render messageFormatter("Erro ao tenatr realizar Login, Senha e/ou Email inválidos", 403)
             end
