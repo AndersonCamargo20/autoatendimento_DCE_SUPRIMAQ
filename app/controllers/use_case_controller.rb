@@ -266,9 +266,10 @@ class UseCaseController < ApplicationController
               if !printer.blank?
                 qtd_pages = access_token['pages']
                 print_value = printer.preco.to_f
-                value_want_print = qtd_pages.to_f * printer.preco
-                if value_want_print.to_f <= current_user.credit.to_f
-                  diference = (current_user.credit.to_f - value_want_print.to_f).to_f  
+                print_value = print_value.round(2)
+                value_want_print = qtd_pages * (printer.preco).round(2)
+                if (value_want_print.to_f).round(2) <= (current_user.credit.to_f).round(2)
+                  diference = ((current_user.credit.to_f - value_want_print.to_f).to_f).round(2) 
                   current_user.update(credit: diference)
                   render :json => {
                     message: "Impressoão realizada com sucesso!",
