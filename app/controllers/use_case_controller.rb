@@ -1,10 +1,9 @@
 class UseCaseController < ApplicationController
+  protect_from_forgery prepend: true 
+  
   require 'jwt'
-  protect_from_forgery prepend: true
   require 'net/http'
   require 'json'
-
-  
 
   #VERIFICADO 1
   def newUser
@@ -265,7 +264,7 @@ class UseCaseController < ApplicationController
               printer_token = request.headers['HTTP_PRINTER']
               printer = Impressora.find_by(modelo: printer_token.to_s)
               if !printer.blank?
-                qtd_pages = request.headers['HTTP_QTD_PAGES']
+                qtd_pages = access_token['pages']
                 print_value = printer.preco.to_f
                 value_want_print = qtd_pages.to_f * printer.preco
                 if value_want_print.to_f <= current_user.credit.to_f
