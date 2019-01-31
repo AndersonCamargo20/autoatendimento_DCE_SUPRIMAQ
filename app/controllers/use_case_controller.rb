@@ -15,12 +15,14 @@ class UseCaseController < ApplicationController
       if !testAuthorization(hmac_secret)
         render messageFormatter("Erro de autenticação", 403)
       else
-        if request.headers['HTTP_PASSWORD'].blank? || request.headers['HTTP_EMAIL'].blank?  || request.headers['HTTP_NOME'].blank?
+        puts "IMPRESSORA: #{request.headers['HTTP_PRINTER']}"
+        if request.headers['HTTP_PRINTER'].blank? || request.headers['HTTP_PASSWORD'].blank? || request.headers['HTTP_EMAIL'].blank?  || request.headers['HTTP_NOME'].blank?
           render messageFormatter("Um ou mais parâmetros não foram informados", 404)
         else
           email = request.headers['HTTP_EMAIL']
           nome = request.headers['HTTP_NOME']
           hmac_secret = request.headers['HTTP_AUTHORIZATION']
+          printer_token = request.headers['HTTP_PRINTER']
           password = {
             password: request.headers['HTTP_PASSWORD']
           }
@@ -37,16 +39,22 @@ class UseCaseController < ApplicationController
             }
             token_access = JWT.encode access, hmac_secret, 'HS256'
             @response = []
-
-            @response = {
-              message: "Usuário cadastrado com sucesso!",
-              nome: user.nome,
-              email: user.email,
-              admin: user.admin,
-              credito: user.credit, 
-              token: token_access
-            }
-            render :json => @response, :status => 200
+            
+            printer = Impressora.find_by(modelo: printer_token.to_s) if !printer_token.blank?
+            if !printer_token.blank? && !printer.blank?
+              @response = {
+                message: "Usuário cadastrado com sucesso!",
+                nome: user.nome,
+                email: user.email,
+                valor_impressao: printer.preco,
+                admin: user.admin,
+                credito: user.credit, 
+                token: token_access
+              }
+              render :json => @response, :status => 200
+            else
+              render messageFormatter("Impressora inválida", 404)
+            end
           end
         end
       end
@@ -80,8 +88,8 @@ class UseCaseController < ApplicationController
               }
               token_access = JWT.encode access, hmac_secret, 'HS256'
               printer_token = request.headers['HTTP_PRINTER']
-              if !printer_token.blank?
-                printer = Impressora.find_by(modelo: printer_token.to_s) if !printer_token.blank?
+              printer = Impressora.find_by(modelo: printer_token.to_s) if !printer_token.blank?
+              if !printer_token.blank? && !printer.blank?
                 render :json => {
                   message: "Login efetuado com sucesso!",
                   email: user.email,
@@ -95,10 +103,10 @@ class UseCaseController < ApplicationController
                 render messageFormatter("Impressora inválida, envie ua impressora válida para continuar", 403)
               end
             else
-              render messageFormatter("Erro ao tenatr realizar Login, Senha e/ou Email inválidos", 403)
+              render messageFormatter("Erro ao tentar realizar Login, Senha e/ou Email inválidos", 403)
             end
           else
-            render messageFormatter("Erro ao tenatr realizar Login, Senha e/ou Email inválidos", 403)
+            render messageFormatter("Erro ao tentar realizar Login, Senha e/ou Email inválidos", 403)
           end
         end
       end
@@ -128,16 +136,20 @@ class UseCaseController < ApplicationController
             if current_user && current_user.admin?
               user = User.find_by(email: emailToAdd)
               if !user.blank?
-                creditos = user.credit.to_f
-                user.update(credit: creditos + credit)
-                render :json => {
-                  message: "Créditos adicionados com sucesso!",
-                  email: user.email,
-                  nome: user.nome,
-                  admin: user.admin,
-                  credito: user.credit,
-                  token: access_token['token']
-                }, :status => 200
+                creditos = user.credit.to_f.round(2)
+                if((creditos + credit) >= 0)
+                  user.update(credit: (creditos + credit).round(2))
+                  render :json => {
+                    message: "Créditos adicionados com sucesso!",
+                    email: user.email,
+                    nome: user.nome,
+                    admin: user.admin,
+                    credito: user.credit,
+                    token: access_token['token']
+                  }, :status => 200
+                else
+                  render messageFormatter("O valor do crédito não pode ser negativo", 401)
+                end
               else
                 render messageFormatter("Usuário não existente!", 403)
               end
