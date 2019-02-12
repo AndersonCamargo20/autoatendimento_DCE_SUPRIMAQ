@@ -10,7 +10,25 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2019_01_13_204109) do
+ActiveRecord::Schema.define(version: 2019_02_12_001820) do
+
+  create_table "adicao_creditos", force: :cascade do |t|
+    t.integer "empresa_id"
+    t.float "valor"
+    t.integer "user_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["empresa_id"], name: "index_adicao_creditos_on_empresa_id"
+    t.index ["user_id"], name: "index_adicao_creditos_on_user_id"
+  end
+
+  create_table "empresas", force: :cascade do |t|
+    t.string "nome"
+    t.float "preco_incolor"
+    t.float "preco_colorida"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
 
   create_table "impressoras", force: :cascade do |t|
     t.string "modelo"
@@ -26,6 +44,16 @@ ActiveRecord::Schema.define(version: 2019_01_13_204109) do
     t.float "print_value"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "remocao_creditos", force: :cascade do |t|
+    t.integer "empresa_id"
+    t.float "valor"
+    t.integer "user_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["empresa_id"], name: "index_remocao_creditos_on_empresa_id"
+    t.index ["user_id"], name: "index_remocao_creditos_on_user_id"
   end
 
   create_table "users", force: :cascade do |t|

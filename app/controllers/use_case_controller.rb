@@ -55,7 +55,7 @@ class UseCaseController < ApplicationController
   end
   
   #VERIFICADO 1
-  def loginUser
+  def loginUser 
     hmac_secret = request.headers['HTTP_AUTHORIZATION']
     if hmac_secret.blank?
       render :json => messageFormatter("Erro de autenticação", 401)
@@ -104,6 +104,7 @@ class UseCaseController < ApplicationController
     hmac_secret = request.headers['HTTP_AUTHORIZATION']
     access_token = JSON.parse(request.body.read)
     credit = request.headers['HTTP_CREDIT'].to_f
+    email = request.headers['HTTP_EMAIL'].to_f
     if hmac_secret.blank?
       render messageFormatter("Authorization não informado", 401)
     else
@@ -113,14 +114,15 @@ class UseCaseController < ApplicationController
         if !testAuthorization(hmac_secret)
           render messageFormatter("Authorization inválido", 401)
         else
-          if credit.blank?
+          if credit.blank? || email.blank?
             render messageFormatter("Um ou mais dados não foram informados, por favor verifique os dados e tente novamente!", 404)
           else
             token_decoded = decryptParams(access_token, hmac_secret)
             date_hour_token = token_decoded[0]['session'].to_datetime
             if date_hour_token >= 15.minute.ago
-              user = User.find_by(email: token_decoded[0]['email'])
-              if !user.blank?
+              user_resquest = User.find_by(email: token_decoded[0]['email'])
+              if !user_resquest.blank?
+                user = User.find_by(email: email)
                 user.update(credit: credit + user.credit.to_f)
                 render :json => {
                   message: "Crédito adicionado com sucesso!",
@@ -289,7 +291,7 @@ class UseCaseController < ApplicationController
   end
 
   #OK
-  def refreshPage
+  def refreshUser
     hmac_secret = request.headers['HTTP_AUTHORIZATION']
     access_token = JSON.parse(request.body.read)
     if hmac_secret.blank?
@@ -341,9 +343,7 @@ class UseCaseController < ApplicationController
       }, status: status
     end
 
-    def testAuthorization(secret)
-      secret == "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJjb21wYW55X2lkIjoxOH0.yRP59sRufpm9ro6RGZ8nuZcfRVMKqkCvneBz6KZB4mU"
-    end
+    
   
   
   public
@@ -351,4 +351,9 @@ class UseCaseController < ApplicationController
       date_hour >= 15.minutes.ago
     end
 
+    def testAuthorization(secret)
+      secret == "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJjb21wYW55X2lkIjoxOH0.yRP59sRufpm9ro6RGZ8nuZcfRVMKqkCvneBz6KZB4mU"
+    end
+    
+  end
 end
