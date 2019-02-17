@@ -16,7 +16,7 @@ class UseCaseController < ApplicationController
         render messageFormatter("Erro de autenticação", 403)
       else
         puts "IMPRESSORA: #{request.headers['HTTP_PRINTER']}"
-        if request.headers['HTTP_PRINTER'].blank? || request.headers['HTTP_PASSWORD'].blank? || request.headers['HTTP_EMAIL'].blank?  || request.headers['HTTP_NOME'].blank?
+        if request.headers['HTTP_EMPRESA'].blank? || request.headers['HTTP_PRINTER'].blank? || request.headers['HTTP_PASSWORD'].blank? || request.headers['HTTP_EMAIL'].blank?  || request.headers['HTTP_NOME'].blank?
           render messageFormatter("Um ou mais parâmetros não foram informados", 404)
         else
           email = request.headers['HTTP_EMAIL']
@@ -32,28 +32,34 @@ class UseCaseController < ApplicationController
           if !other_users_with_email.blank?
             render messageFormatter("E-mail já cadastrado, informe outro e-mail", 404)
           else
-            user = User.create(nome: nome, email: email, password: password_coded, credit: 0, created_at: DateTime.current, updated_at: DateTime.current)
-            access = {
-              email: request.headers['HTTP_EMAIL'],
-              session: DateTime.current
-            }
-            token_access = JWT.encode access, hmac_secret, 'HS256'
-            @response = []
-            
-            printer = Impressora.find_by(modelo: printer_token.to_s) if !printer_token.blank?
-            if !printer_token.blank? && !printer.blank?
-              @response = {
-                message: "Usuário cadastrado com sucesso!",
-                nome: user.nome,
-                email: user.email,
-                valor_impressao: printer.preco,
-                admin: user.admin,
-                credito: user.credit, 
-                token: token_access
+            empresaAdd = Empresa.find_by(id: request.headers['HTTP_EMPRESA']);
+            if !empresaAdd.blank?
+              user = User.create(empresa_id: empresaAdd.id, nome: nome, email: email, password: password_coded, credit: 0, created_at: DateTime.current, updated_at: DateTime.current)
+              access = {
+                email: request.headers['HTTP_EMAIL'],
+                session: DateTime.current
               }
-              render :json => @response, :status => 200
+              token_access = JWT.encode access, hmac_secret, 'HS256'
+              @response = []
+              
+              printer = Impressora.find_by(modelo: printer_token.to_s) if !printer_token.blank?
+              if !printer_token.blank? && !printer.blank?
+                @response = {
+                  message: "Usuário cadastrado com sucesso!",
+                  nome: user.nome,
+                  email: user.email,
+                  valor_impressao: printer.preco,
+                  empresa: empresaAdd.id,
+                  admin: user.admin,
+                  credito: user.credit, 
+                  token: token_access
+                }
+                render :json => @response, :status => 200
+              else
+                render messageFormatter("Impressora inválida", 404)
+              end
             else
-              render messageFormatter("Impressora inválida", 404)
+              render messageFormatter("Empresa não existente ou inválida", 404)
             end
           end
         end
@@ -89,6 +95,8 @@ class UseCaseController < ApplicationController
               token_access = JWT.encode access, hmac_secret, 'HS256'
               printer_token = request.headers['HTTP_PRINTER']
               printer = Impressora.find_by(modelo: printer_token.to_s) if !printer_token.blank?
+              puts "TOKEN: #{printer_token}"
+              puts "IMPRESSORA: #{printer.blank?}"
               if !printer_token.blank? && !printer.blank?
                 render :json => {
                   message: "Login efetuado com sucesso!",
@@ -96,6 +104,7 @@ class UseCaseController < ApplicationController
                   nome: user.nome,
                   admin: user.admin,
                   valor_impressao: printer.preco,
+                  empresa: user.empresa_id,
                   credito: user.credit,
                   token: token_access
                 }, :status => 200
@@ -118,11 +127,7 @@ class UseCaseController < ApplicationController
     hmac_secret = request.headers['HTTP_AUTHORIZATION']
     access_token = JSON.parse(request.body.read)
     credit = request.headers['HTTP_CREDIT'].to_f
-<<<<<<< HEAD
-    email = request.headers['HTTP_EMAIL'].to_f
-=======
     emailToAdd = request.headers['HTTP_EMAIL']
->>>>>>> a3a2671da553b47c2a1031b6dad307bf7d2389d5
     if hmac_secret.blank?
       render messageFormatter("Authorization não informado", 401)
     else
@@ -132,26 +137,61 @@ class UseCaseController < ApplicationController
         if access_token.blank?
           render messageFormatter("Access Token não informado", 401)
         else
-<<<<<<< HEAD
-          if credit.blank? || email.blank?
-            render messageFormatter("Um ou mais dados não foram informados, por favor verifique os dados e tente novamente!", 404)
+          token_decoded = decryptParams(access_token["token"].to_s, hmac_secret)
+          date_hour_token = token_decoded[0]['session'].to_datetime
+          if self.logado?(date_hour_token)
+            email_decoded = token_decoded[0]['email']
+            current_user = User.find_by(email: email_decoded)
+            puts "ADMIN?: #{current_user.admin?}"
+            if current_user && current_user.admin?
+              puts "ADD TO: #{emailToAdd}"
+              user = User.find_by(email: emailToAdd)
+              if !user.blank?
+                creditos = user.credit.to_f.round(2)
+                if((creditos + credit) >= 0)
+                  user.update(credit: (creditos + credit).round(2))
+                  AdicaoCredito.create(empresa_id: user.id, valor: credit, user_id: user.empresa_id)
+                  render :json => {
+                    message: "Créditos adicionados com sucesso!",
+                    email: user.email,
+                    nome: user.nome,
+                    admin: user.admin,
+                    credito: user.credit,
+                    empresa: user.empresa_id,
+                    token: access_token['token']
+                  }, :status => 200
+                else
+                  render messageFormatter("O valor do crédito não pode ser negativo", 401)
+                end
+              else
+                render messageFormatter("Usuário não existente!", 403)
+              end
+            else
+              render messageFormatter("Usuário não existente ou sem sutorização!", 403)  
+            end
           else
-            token_decoded = decryptParams(access_token, hmac_secret)
-            date_hour_token = token_decoded[0]['session'].to_datetime
-            if date_hour_token >= 15.minute.ago
-              user_resquest = User.find_by(email: token_decoded[0]['email'])
-              if !user_resquest.blank?
-                user = User.find_by(email: email)
-                user.update(credit: credit + user.credit.to_f)
-                render :json => {
-                  message: "Crédito adicionado com sucesso!",
-                  email: user.email,
-                  nome: user.nome,
-                  admin: user.admin,
-                  credito: user.credit,
-                  token: access_token
-                }, :status => 200
-=======
+            render messageFormatter("Login expirado! Refaça o login", 401)
+          end
+        end
+      end
+    end
+  end
+
+  #OK
+  def removeCredits
+    hmac_secret = request.headers['HTTP_AUTHORIZATION']
+    access_token = JSON.parse(request.body.read)
+    credit = request.headers['HTTP_CREDIT'].to_f
+    emailToAdd = request.headers['HTTP_EMAIL']
+    if hmac_secret.blank?
+      render messageFormatter("Authorization não informado", 401)
+    else
+      if !testAuthorization(hmac_secret)
+        render messageFormatter("Authorization inválido", 401)
+      else
+        if access_token.blank?
+          render messageFormatter("Access Token não informado", 401)
+        else
           token_decoded = decryptParams(access_token["token"].to_s, hmac_secret)
           date_hour_token = token_decoded[0]['session'].to_datetime
           if self.logado?(date_hour_token)
@@ -161,20 +201,25 @@ class UseCaseController < ApplicationController
               user = User.find_by(email: emailToAdd)
               if !user.blank?
                 creditos = user.credit.to_f.round(2)
-                if((creditos + credit) >= 0)
-                  user.update(credit: (creditos + credit).round(2))
+                if(credit > 0)
+                  if((creditos - credit) <= 0)
+                    user.update(credit: 0.round(2))
+                  else
+                    user.update(credit: (creditos - credit).round(2))
+                  end  
+                  RemocaoCredito.create(empresa_id: user.id, valor: credit, user_id: user.empresa_id)
                   render :json => {
-                    message: "Créditos adicionados com sucesso!",
+                    message: "Créditos removidos com sucesso!",
                     email: user.email,
                     nome: user.nome,
                     admin: user.admin,
                     credito: user.credit,
+                    empresa: user.empresa_id,
                     token: access_token['token']
                   }, :status => 200
                 else
-                  render messageFormatter("O valor do crédito não pode ser negativo", 401)
+                  render messageFormatter("O valor do crédito não pode ser negativo ou igual a zero", 401)
                 end
->>>>>>> a3a2671da553b47c2a1031b6dad307bf7d2389d5
               else
                 render messageFormatter("Usuário não existente!", 403)
               end
@@ -378,7 +423,6 @@ class UseCaseController < ApplicationController
     end
   end
 
-<<<<<<< HEAD
   private
     def crypteParams(obj, hmac_secret)
       JWT.encode obj, hmac_secret, 'HS256'
@@ -393,9 +437,6 @@ class UseCaseController < ApplicationController
         message: msg,
       }, status: status
     end
-
-    
-  
   
   public
     def logado?(date_hour)
@@ -405,9 +446,4 @@ class UseCaseController < ApplicationController
     def testAuthorization(secret)
       secret == "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJjb21wYW55X2lkIjoxOH0.yRP59sRufpm9ro6RGZ8nuZcfRVMKqkCvneBz6KZB4mU"
     end
-    
-  end
 end
-=======
-end
->>>>>>> a3a2671da553b47c2a1031b6dad307bf7d2389d5

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2019_02_12_001820) do
+ActiveRecord::Schema.define(version: 2019_02_17_175658) do
 
   create_table "adicao_creditos", force: :cascade do |t|
     t.integer "empresa_id"
@@ -18,7 +18,9 @@ ActiveRecord::Schema.define(version: 2019_02_12_001820) do
     t.integer "user_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "impressora_id"
     t.index ["empresa_id"], name: "index_adicao_creditos_on_empresa_id"
+    t.index ["impressora_id"], name: "index_adicao_creditos_on_impressora_id"
     t.index ["user_id"], name: "index_adicao_creditos_on_user_id"
   end
 
@@ -36,6 +38,8 @@ ActiveRecord::Schema.define(version: 2019_02_12_001820) do
     t.string "tipo"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "empresa_id"
+    t.index ["empresa_id"], name: "index_impressoras_on_empresa_id"
   end
 
   create_table "printers", force: :cascade do |t|
@@ -52,7 +56,9 @@ ActiveRecord::Schema.define(version: 2019_02_12_001820) do
     t.integer "user_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "impressora_id"
     t.index ["empresa_id"], name: "index_remocao_creditos_on_empresa_id"
+    t.index ["impressora_id"], name: "index_remocao_creditos_on_impressora_id"
     t.index ["user_id"], name: "index_remocao_creditos_on_user_id"
   end
 
@@ -64,6 +70,8 @@ ActiveRecord::Schema.define(version: 2019_02_12_001820) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.boolean "admin", default: false
+    t.integer "empresa_id"
+    t.index ["empresa_id"], name: "index_users_on_empresa_id"
   end
 
 end
