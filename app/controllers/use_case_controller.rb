@@ -272,6 +272,7 @@ class UseCaseController < ApplicationController
               email: user.email,
               nome: user.nome,
               admin: user.admin,
+              empresa: user.empresa_id,
               credito: user.credit,
               token: access_token["token"]
             }, :status => 200
@@ -308,7 +309,8 @@ class UseCaseController < ApplicationController
                 @usersFormatted << {
                   nome: user.nome,
                   email: user.email,
-                  credito: user.credit
+                  credito: user.credit,
+                  empresa: user.empresa_id
                 }
               end
               render :json => @usersFormatted, status: 200          
@@ -365,6 +367,7 @@ class UseCaseController < ApplicationController
                     email: current_user.email,
                     nome: current_user.nome,
                     admin: current_user.admin,
+                    empresa: current_user.empresa_id,
                     credito: current_user.credit,
                     token: access_token['token']
                   }, :status => 200          
@@ -409,6 +412,7 @@ class UseCaseController < ApplicationController
                 email: current_user.email,
                 nome: current_user.nome,
                 admin: current_user.admin,
+                empresa: current_user.empresa_id,
                 credito: current_user.credit,
                 token: access_token['token']
               }, :status => 200
