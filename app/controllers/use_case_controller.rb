@@ -363,7 +363,7 @@ class UseCaseController < ApplicationController
                   diference = ((current_user.credit.to_f - value_want_print.to_f).to_f).round(2) 
                   current_user.update(credit: diference)
                   render :json => {
-                    message: "Impressoão realizada com sucesso!",
+                    message: "Impressão realizada com sucesso!",
                     email: current_user.email,
                     nome: current_user.nome,
                     admin: current_user.admin,
@@ -427,15 +427,52 @@ class UseCaseController < ApplicationController
     end
   end
 
+  def dailyReport
+    hmac_secret = request.headers['HTTP_AUTHORIZATION']
+    access_token = JSON.parse(request.body.read)
+    if hmac_secret.blank?
+      render messageFormatter("Authorization não informado", 401)
+    else
+      if !testAuthorization(hmac_secret) || request.headers['HTTP_DATA'].blank?
+        render messageFormatter("Authorization inválido", 401)
+      else
+        if access_token.blank?
+          render messageFormatter("Access Token não informado", 401)
+        else
+          token_decoded = decryptParams(access_token["token"].to_s, hmac_secret)
+          date_hour_token = token_decoded[0]['session'].to_datetime
+          if self.logado?(date_hour_token)
+            email_decoded = token_decoded[0]['email']
+            current_user = User.find_by(email: email_decoded)
+            if current_user && current_user.admin?
+              data = request.headers['HTTP_DATA'].to_datetime
+              inicio = data.beginning_of_day
+              fim = data.end_of_day
+              inicio = inicio + 3.hours
+              fim = fim + 3.hours
+              adicionados = AdicaoCredito.where("created_at > ? and created_At < ?", inicio, fim).sum(&:valor)
+              retirados =   RemocaoCredito.where("created_at > ? and created_At < ?", inicio, fim).sum(&:valor)
+              total = adicionados - retirados
+              render :json => {
+                message: "Relatório gerado com sucesso",
+                adicionados: adicionados,
+                retirados: retirados,
+                total: total,
+                data: data,
+                token: access_token['token']
+              }, :status => 200
+            else
+              render messageFormatter("Usuário não existente ou sem sutorização!", 403)  
+            end
+          else
+            render messageFormatter("Login expirado! Refaça o login", 500)
+          end
+        end
+      end
+    end
+  end
+
   private
-    def crypteParams(obj, hmac_secret)
-      JWT.encode obj, hmac_secret, 'HS256'
-    end
-
-    def decryptParams(obj, hmac_secret)
-      JWT.decode(obj, hmac_secret, true, algorithm: 'HS256')
-    end
-
     def messageFormatter(msg, status)
       return :json => {
         message: msg,
