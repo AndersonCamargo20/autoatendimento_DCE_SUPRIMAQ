@@ -104,7 +104,7 @@ class UseCaseController < ApplicationController
                   nome: user.nome,
                   admin: user.admin,
                   valor_impressao: printer.preco,
-                  empresa: user.empresa_id,
+                  empresa: user.empresa.nome,
                   credito: user.credit,
                   token: token_access
                 }, :status => 200
@@ -112,10 +112,10 @@ class UseCaseController < ApplicationController
                 render messageFormatter("Impressora inválida, envie ua impressora válida para continuar", 403)
               end
             else
-              render messageFormatter("Erro ao tentar realizar Login, Senha e/ou Email inválidos", 403)
+              render messageFormatter("Erro ao tentar realizar Login, Senha e/ou Email inválidos 2", 403)
             end
           else
-            render messageFormatter("Erro ao tentar realizar Login, Senha e/ou Email inválidos", 403)
+            render messageFormatter("Erro ao tentar realizar Login, Senha e/ou Email inválidos 3", 403)
           end
         end
       end
