@@ -150,7 +150,7 @@ class UseCaseController < ApplicationController
                 creditos = user.credit.to_f.round(2)
                 if((creditos + credit) >= 0)
                   user.update(credit: (creditos + credit).round(2))
-                  AdicaoCredito.create(empresa_id: user.id, valor: credit, user_id: user.empresa_id)
+                  AdicaoCredito.create(empresa_id: user.empresa_id, valor: credit, user_id: user.id)
                   render :json => {
                     message: "Créditos adicionados com sucesso!",
                     email: user.email,
@@ -207,7 +207,7 @@ class UseCaseController < ApplicationController
                   else
                     user.update(credit: (creditos - credit).round(2))
                   end  
-                  RemocaoCredito.create(empresa_id: user.id, valor: credit, user_id: user.empresa_id)
+                  RemocaoCredito.create(empresa_id: user.empresa_id, valor: credit, user_id: user.id)
                   render :json => {
                     message: "Créditos removidos com sucesso!",
                     email: user.email,
